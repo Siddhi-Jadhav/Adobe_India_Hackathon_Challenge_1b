@@ -12,32 +12,32 @@ OUTPUT_DIR = "/app/output"
 INPUT_JSON_PATH = os.path.join(INPUT_DIR, "challenge1b_input.json")
 OUTPUT_JSON_PATH = os.path.join(OUTPUT_DIR, "challenge1b_output.json")
 
-def extract_recipes(pdf_path):
-    """Extract recipes from PDF with page numbers"""
+def extract_sections(pdf_path):
+    """Extract sections from PDF with page numbers"""
     try:
         doc = fitz.open(pdf_path)
-        recipes = []
+        sections = []
         for page_num in range(len(doc)):
             page = doc.load_page(page_num)
             text = page.get_text()
             
-            # Extract recipe names (all caps or title case)
-            recipe_names = re.findall(r'^([A-Z][A-Za-z\s\-]+)\n', text, re.MULTILINE)
+            # Extract sections names (all caps or title case)
+            sections_names = re.findall(r'^([A-Z][A-Za-z\s\-]+)\n', text, re.MULTILINE)
             
-            # Extract recipe content
-            for name in recipe_names:
-                # Find content after recipe name
+            # Extract sections content
+            for name in sections_names:
+                # Find content after sections name
                 pattern = re.compile(rf'{re.escape(name)}\n([\s\S]*?)(?=\n[A-Z][A-Za-z\s\-]+\n|\Z)')
                 match = pattern.search(text)
                 content = match.group(1).strip() if match else ""
                 
-                recipes.append({
+                sections.append({
                     "page": page_num + 1,
                     "name": name.strip(),
                     "content": content
                 })
                 
-        return recipes
+        return sections
     except Exception as e:
         print(f"Error processing {pdf_path}: {str(e)}")
         return []
@@ -102,8 +102,8 @@ def main():
     job_task = input_data["job_to_be_done"]["task"]
     documents = input_data["documents"]
     
-    # Process documents and extract recipes
-    all_recipes = []
+    # Process documents and extract sections
+    all_sections = []
     for doc in documents:
         filename = doc["filename"]
         filepath = os.path.join(INPUT_DIR, filename)
@@ -112,21 +112,21 @@ def main():
             print(f"PDF not found: {filename}")
             continue
             
-        recipes = extract_recipes(filepath)
-        for recipe in recipes:
-            all_recipes.append({
+        sections = extract_sections(filepath)
+        for sections in sections:
+            all_sections.append({
                 "document": filename,
-                "page": recipe["page"],
-                "name": recipe["name"],
-                "content": recipe["content"]
+                "page": sections["page"],
+                "name": sections["name"],
+                "content": sections["content"]
             })
     
     # Prepare vectors for relevance ranking
-    recipe_names = [r["name"] for r in all_recipes]
-    recipe_contents = [r["content"] for r in all_recipes]
+    sections_names = [r["name"] for r in all_sections]
+    sections_contents = [r["content"] for r in all_sections]
     
     # Create combined text for ranking
-    combined_texts = [f"{name} {content}" for name, content in zip(recipe_names, recipe_contents)]
+    combined_texts = [f"{name} {content}" for name, content in zip(sections_names, sections_contents)]
     
     # Initialize vectorizer
     vectorizer = TfidfVectorizer(stop_words='english', max_features=500)
@@ -142,15 +142,15 @@ def main():
         # Calculate scores
         scores = cosine_similarity(query_vector, tfidf_matrix).flatten()
         
-        # Add scores to recipes
-        for i, recipe in enumerate(all_recipes):
-            recipe["score"] = scores[i]
+        # Add scores to sections
+        for i, sections in enumerate(all_sections):
+            sections["score"] = scores[i]
     else:
-        for recipe in all_recipes:
-            recipe["score"] = 0
+        for sections in all_sections:
+            sections["score"] = 0
     
-    # Sort recipes by relevance
-    all_recipes.sort(key=lambda x: x["score"], reverse=True)
+    # Sort sections by relevance
+    all_sections.sort(key=lambda x: x["score"], reverse=True)
     
     # Prepare output
     output = {
@@ -162,20 +162,20 @@ def main():
         },
         "extracted_sections": [
             {
-                "document": recipe["document"],
-                "section_title": recipe["name"],
+                "document": sections["document"],
+                "section_title": sections["name"],
                 "importance_rank": i+1,
-                "page_number": recipe["page"]
+                "page_number": sections["page"]
             }
-            for i, recipe in enumerate(all_recipes[:5])
+            for i, sections in enumerate(all_sections[:5])
         ],
         "subsection_analysis": [
             {
-                "document": recipe["document"],
-                "refined_text": recipe["content"][:500] + ("..." if len(recipe["content"]) > 500 else ""),
-                "page_number": recipe["page"]
+                "document": sections["document"],
+                "refined_text": sections["content"][:500] + ("..." if len(sections["content"]) > 500 else ""),
+                "page_number": sections["page"]
             }
-            for recipe in all_recipes[:5]
+            for sections in all_sections[:5]
         ]
     }
     
