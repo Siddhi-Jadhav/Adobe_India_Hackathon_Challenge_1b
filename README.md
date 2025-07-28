@@ -1,43 +1,38 @@
-
 # 📄 Adobe Connecting the Dots – Round 1B Submission
 
-## 🎯 Problem Statement: Persona-driven Document Intelligence
+## 🎯 Problem Statement: Persona-Driven Document Intelligence
 
-The objective of **Round 1B** is to develop a system that can provide persona-driven content recommendations from research papers. Given a research paper and a target persona (e.g., high school student, policy-maker, graduate researcher), the system must extract relevant information and generate a concise, persona-specific summary.
+The objective of **Round 1B** is to build an intelligent system that extracts and ranks the most relevant sections from a collection of PDFs, based on a given persona and their job-to-be-done. The output should be a structured, ranked, and context-aware JSON summary.
 
 ---
 
 ## 🛠️ Solution Overview
 
-We created a **persona-aware PDF summarization engine** that:
+Our system takes in:
+- A set of PDFs
+- A JSON input with persona and task definition
 
-- Parses the document into manageable chunks.
-- Generates embeddings using the `all-MiniLM-L6-v2` SentenceTransformer.
-- Accepts a persona query.
-- Ranks and selects the most relevant text spans.
-- Returns a condensed summary tailored to the input persona.
+It returns:
+- Metadata
+- Ranked section-level and sub-section-level outputs
+- Relevant refined text passages based on semantic similarity
 
-This solution is containerized using **Docker** for cross-platform portability.
+Key Components:
+- Text extraction with **PyMuPDF**
+- Relevance scoring using **TF-IDF + Cosine Similarity**
+- Timestamped, persona-aware output in JSON format
 
 ---
 
 ## 📂 Project Structure
 
-round1b/
-│
-├── input/ # Folder containing the input PDF
-│ └── research_paper.pdf
-│
-├── output/ # Folder where persona-specific summary is saved
-│ └── research_paper_summary.txt
-│
-├── model/ # Pre-downloaded SentenceTransformer model
-│ └── all-MiniLM-L6-v2/
-│
-├── main.py # Main pipeline script
-├── save_model.py # Script to download & save the embedding model
-├── requirements.txt # Python package dependencies
-├── Dockerfile # Docker container definition
+Challenge_1b/
+├── input/ # Folder with input PDFs and challenge1b_input.json
+│ ├── file1.pdf
+│ └── challenge1b_input.json
+├── output/ # Folder for saving challenge1b_output.json
+├── run.py # Entry-point script that calls 
+├── Dockerfile # Container setup for AMD64-compatible systems
 └── README.md # Project documentation
 
 yaml
@@ -46,99 +41,88 @@ Edit
 
 ---
 
-## 🚀 How to Run (Locally)
+## 🚀 How to Run
 
-### 1. ✅ Install Dependencies in a Virtual Environment
+### 🐳 Docker-Based Execution (Recommended)
 
-```bash
-python -m venv venv
-source venv/bin/activate         # or venv\Scripts\activate on Windows
-pip install -r requirements.txt
-```
-2. 📥 Download the SentenceTransformer Model
-```bash
-python save_model.py
-```
-This will create the folder model/all-MiniLM-L6-v2 with the necessary weights.
+Make sure your current directory contains the following:
+- `input/` folder with PDFs and `challenge1b_input.json`
+- `Dockerfile`, `run.py`, and `pp.py` in the root
 
-3. 🧪 Run the Summarization Script
-Ensure a .pdf file is in the input/ directory. Then run:
+### ✅ Build the Docker Image
 
 ```bash
-python main.py
-```
-The persona query will be prompted via the terminal.
-
-Output will be saved in the output/ folder as a .txt file.
-
-🐳 Run with Docker
-1. Build the Docker Image
-```bash
-docker build -t round1b-extractor .
-```
-2. Run the Container
-```bash
+docker build --platform linux/amd64 -t challenge1b-solution .
+▶️ Run the Docker Container
+bash
+Copy
+Edit
 docker run --rm \
   -v "$(pwd)/input:/app/input" \
   -v "$(pwd)/output:/app/output" \
-  -v "$(pwd)/model:/app/model" \
-  --network host \
-  round1b-extractor
-```
-🪟 For Windows PowerShell Users:
+  --network none \
+  challenge1b-solution
+🪟 On Windows PowerShell:
 
-```powershell
+powershell
+Copy
+Edit
 docker run --rm `
   -v "${PWD}/input:/app/input" `
   -v "${PWD}/output:/app/output" `
-  -v "${PWD}/model:/app/model" `
-  --network host `
-  round1b-extractor
-```
+  --network none `
+  challenge1b-solution
 🧠 How It Works
-Chunking: Break the PDF into small paragraph segments.
+Preprocessing:
 
-Embedding: Encode each chunk and persona query using the all-MiniLM-L6-v2 model.
+PDFs are read and parsed page by page.
 
-Similarity Matching: Rank chunks by cosine similarity.
+All text blocks are extracted with positional data.
 
-Summary Generation: Return top N segments as a tailored summary.
+Persona Relevance Scoring:
 
-📌 Dependencies
-sentence-transformers
+The persona and job text are converted into TF-IDF vectors.
 
+Each section/subsection of the documents is compared to this using cosine similarity.
+
+Ranking & Extraction:
+
+Sections are ranked using their similarity scores.
+
+Top sections and corresponding text are written in challenge1b_output.json.
+
+📤 Output Format
+The output is a structured JSON file saved to output/challenge1b_output.json. It contains:
+
+Input metadata
+
+Ranked section details
+
+Refined sub-section text
+
+Processing timestamp
+
+Refer to the official problem sample for format details.
+
+📦 Dependencies (installed inside Docker)
 PyMuPDF
 
-torch
+scikit-learn
 
 numpy
 
-📋 See requirements.txt for exact versions.
+re, json, datetime, os
 
-📥 Sample Output
-Input: research_paper.pdf
-Persona: "Explain this paper to a high school student."
+No external APIs or internet access are used.
 
-Output:
-
-```text
-output/research_paper_summary.txt
-Sample contents:
-
-arduino
-Copy
-Edit
-This research explores the use of AI in understanding human language. It teaches computers to read and find important patterns in text...
-```
 🧪 Evaluation Criteria
-✅ Persona relevance and clarity of summary
+✅ Persona + job relevance
 
-✅ Ability to extract useful context from complex research papers
+✅ Semantic ranking accuracy
 
-✅ Accuracy and fluency of generated content
+✅ Clean JSON output with metadata and ranked content
+
+✅ Compliant with time and model size constraints
 
 👨‍💻 Author
-Built with ❤️ by Ashutosh Bhardwaj for the Adobe Connecting the Dots Challenge – Round 1B
-
-🧾 License
-This project is open-source for evaluation purposes only.# Adobe_India_Hackathon
+This project was built for Adobe India Hackathon 2025 - Round 1B by the submitting team. All logic is contained locally and packaged via Docker.
