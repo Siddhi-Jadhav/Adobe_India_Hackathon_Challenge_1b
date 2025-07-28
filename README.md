@@ -1,128 +1,138 @@
-# 📄 Adobe Connecting the Dots – Round 1B Submission
+# Adobe India Hackathon: Document Processing Solutions
 
-## 🎯 Problem Statement: Persona-Driven Document Intelligence
+## Challenge Overview
+This project addresses Adobe's "Connecting the Dots" hackathon challenges to transform static PDFs into intelligent, structured documents. The solution comprises two distinct but complementary components:
 
-The objective of **Round 1B** is to build an intelligent system that extracts and ranks the most relevant sections from a collection of PDFs, based on a given persona and their job-to-be-done. The output should be a structured, ranked, and context-aware JSON summary.
+1. **Round 1A**: PDF Structure Extraction
+2. **Round 1B**: Persona-Driven Content Analysis
 
----
+## Technical Requirements
 
-## 🛠️ Solution Overview
+### System Constraints
+- **Platform**: AMD64 (x86_64) architecture
+- **Execution**: CPU-only, no GPU acceleration
+- **Network**: Strictly offline operation
+- **Resource Limits**:
+  - Round 1A: ≤200MB memory, ≤10s per 50-page PDF
+  - Round 1B: ≤1GB memory, ≤60s for 5 documents
 
-Our system takes in:
-- A set of PDFs
-- A JSON input with persona and task definition
+### Dependencies
+- Python 3.8+
+- PyMuPDF (fitz)
+- scikit-learn
+- Unicode normalization libraries
 
-It returns:
-- Metadata
-- Ranked section-level and sub-section-level outputs
-- Relevant refined text passages based on semantic similarity
+## Installation
 
-Key Components:
-- Text extraction with **PyMuPDF**
-- Relevance scoring using **TF-IDF + Cosine Similarity**
-- Timestamped, persona-aware output in JSON format
-
----
-
-## 📂 Project Structure
-
-Challenge_1b/
-├── input/ # Folder with input PDFs and challenge1b_input.json
-│ ├── file1.pdf
-│ └── challenge1b_input.json
-├── output/ # Folder for saving challenge1b_output.json
-├── run.py # Entry-point script that calls 
-├── Dockerfile # Container setup for AMD64-compatible systems
-└── README.md # Project documentation
-
-yaml
-Copy
-Edit
-
----
-
-## 🚀 How to Run
-
-### 🐳 Docker-Based Execution (Recommended)
-
-Make sure your current directory contains the following:
-- `input/` folder with PDFs and `challenge1b_input.json`
-- `Dockerfile`, `run.py`, and `pp.py` in the root
-
-### ✅ Build the Docker Image
-
+1. Clone the repository:
 ```bash
-docker build --platform linux/amd64 -t challenge1b-solution .
-▶️ Run the Docker Container
-bash
-Copy
-Edit
+git clone [repository-url]
+```
+
+2. Build the Docker image:
+```bash
+docker build --platform linux/amd64 -t adobe-hackathon:latest .
+```
+
+## Usage
+
+### For Round 1A (Structure Extraction)
+Place PDF files in the `./input` directory and run:
+```bash
 docker run --rm \
-  -v "$(pwd)/input:/app/input" \
-  -v "$(pwd)/output:/app/output" \
+  -v $(pwd)/input:/app/input \
+  -v $(pwd)/output:/app/output \
   --network none \
-  challenge1b-solution
-🪟 On Windows PowerShell:
+  adobe-hackathon:latest
+```
 
-powershell
-Copy
-Edit
-docker run --rm `
-  -v "${PWD}/input:/app/input" `
-  -v "${PWD}/output:/app/output" `
-  --network none `
-  challenge1b-solution
-🧠 How It Works
-Preprocessing:
+Output files will be generated in `./output` with matching names (e.g., `document.pdf` → `document.json`).
 
-PDFs are read and parsed page by page.
+### For Round 1B (Content Analysis)
+Create `challenge1b_input.json` in the `./input` directory with this format:
+```json
+{
+  "documents": [{"filename": "document1.pdf"}],
+  "persona": {"role": "Researcher"},
+  "job_to_be_done": {"task": "Find relevant studies"}
+}
+```
 
-All text blocks are extracted with positional data.
+Run the same Docker command as above. Results will appear in `./output/challenge1b_output.json`.
 
-Persona Relevance Scoring:
+## Output Specifications
 
-The persona and job text are converted into TF-IDF vectors.
+### Round 1A Output
+```json
+{
+  "title": "Document Title",
+  "outline": [
+    {"level": "H1", "text": "Main Section", "page": 1},
+    {"level": "H2", "text": "Subsection", "page": 2}
+  ]
+}
+```
 
-Each section/subsection of the documents is compared to this using cosine similarity.
+### Round 1B Output
+```json
+{
+  "metadata": {
+    "input_documents": ["document1.pdf"],
+    "persona": "Researcher",
+    "job_to_be_done": "Find relevant studies",
+    "processing_timestamp": "2025-03-15T12:00:00Z"
+  },
+  "extracted_sections": [
+    {
+      "document": "document1.pdf",
+      "section_title": "Methodology",
+      "importance_rank": 1,
+      "page_number": 3
+    }
+  ],
+  "subsection_analysis": [
+    {
+      "document": "document1.pdf",
+      "refined_text": "The study employed a...",
+      "page_number": 3
+    }
+  ]
+}
+```
 
-Ranking & Extraction:
+## Testing
 
-Sections are ranked using their similarity scores.
+Sample test files are available in the [Public Dataset Folder](https://github.com/jhaaj08/Adobe-India-Hackathon25.git).
 
-Top sections and corresponding text are written in challenge1b_output.json.
+To verify correct operation:
+1. Place sample PDFs in `./input`
+2. Run the Docker container
+3. Check `./output` for generated JSON files
 
-📤 Output Format
-The output is a structured JSON file saved to output/challenge1b_output.json. It contains:
+## Performance Characteristics
 
-Input metadata
+| Metric                 | Round 1A       | Round 1B       |
+|------------------------|----------------|----------------|
+| Processing Time        | ≤10s per PDF   | ≤60s for 5 PDFs|
+| Memory Usage           | ≤200MB         | ≤1GB           |
+| Output Latency         | Immediate      | <1s after processing |
+| Multilingual Support   | Yes (EN/JP)    | Yes (All languages) |
 
-Ranked section details
+## Troubleshooting
 
-Refined sub-section text
+Common issues and solutions:
 
-Processing timestamp
+1. **No output files**:
+   - Verify PDFs are in `./input`
+   - Check file permissions on mounted volumes
 
-Refer to the official problem sample for format details.
+2. **Incomplete outlines**:
+   - Ensure PDFs have properly tagged headings
+   - Test with the provided sample PDFs
 
-📦 Dependencies (installed inside Docker)
-PyMuPDF
+3. **Performance issues**:
+   - Reduce PDF page count if approaching time limits
+   - Verify running on AMD64 architecture
 
-scikit-learn
-
-numpy
-
-re, json, datetime, os
-
-No external APIs or internet access are used.
-
-🧪 Evaluation Criteria
-✅ Persona + job relevance
-
-✅ Semantic ranking accuracy
-
-✅ Clean JSON output with metadata and ranked content
-
-✅ Compliant with time and model size constraints
-
-👨‍💻 Author
-This project was built for Adobe India Hackathon 2025 - Round 1B by the submitting team. All logic is contained locally and packaged via Docker.
+## License
+This project is developed specifically for the Adobe India Hackathon 2025. All rights reserved by the participating team.
